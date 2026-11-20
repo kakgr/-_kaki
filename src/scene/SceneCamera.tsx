@@ -45,6 +45,8 @@ export function SceneCamera({ mode, interactive, resetSignal }: SceneCameraProps
 
   useEffect(() => {
     const controls = new ThreeOrbitControls(camera, gl.domElement);
+    // OrbitControls disables browser gestures by default, including vertical scrolling.
+    controls.domElement?.style.setProperty('touch-action', 'pan-y pinch-zoom');
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     // Keep mouse wheel free for vertical page scrolling

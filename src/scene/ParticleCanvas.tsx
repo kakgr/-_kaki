@@ -38,6 +38,7 @@ export function ParticleCanvas({
       aria-hidden={!interactive}
     >
       <Canvas
+        style={{ pointerEvents: 'inherit' }}
         dpr={1}
         frameloop={isVisible ? 'always' : 'never'}
         gl={{ antialias: false, powerPreference: 'high-performance' }}

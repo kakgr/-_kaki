@@ -18,6 +18,7 @@ export default function App() {
   const [cameraResetSignal, setCameraResetSignal] = useState(0);
   const [introReady, setIntroReady] = useState(false);
   const dimmerRef = useRef<HTMLDivElement>(null);
+  const touchInputRef = useRef(false);
 
   const currentMeta = FRAME_MAP.get(activeFrame) ?? FRAMES[0];
   const isPlayground = activeFrame === 'playground';
@@ -90,6 +91,16 @@ export default function App() {
       isAutoSnapping = false;
     };
 
+    const onPointerDown = (event: PointerEvent) => {
+      touchInputRef.current = event.pointerType === 'touch';
+      cancelSnap();
+    };
+
+    const onWheel = () => {
+      touchInputRef.current = false;
+      cancelSnap();
+    };
+
     const scheduleMagneticPull = () => {
       if (snapTimer) window.clearTimeout(snapTimer);
       if (isAutoSnapping) return;
@@ -115,7 +126,7 @@ export default function App() {
       if (!rafId) {
         rafId = window.requestAnimationFrame(updateFrameAndDimmer);
       }
-      if (!isAutoSnapping) {
+      if (!touchInputRef.current && !isAutoSnapping) {
         scheduleMagneticPull();
       }
     };
@@ -123,16 +134,14 @@ export default function App() {
     updateFrameAndDimmer();
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll, { passive: true });
-    window.addEventListener('wheel', cancelSnap, { passive: true });
-    window.addEventListener('touchstart', cancelSnap, { passive: true });
-    window.addEventListener('pointerdown', cancelSnap, { passive: true });
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('pointerdown', onPointerDown, { passive: true });
 
     return () => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
-      window.removeEventListener('wheel', cancelSnap);
-      window.removeEventListener('touchstart', cancelSnap);
-      window.removeEventListener('pointerdown', cancelSnap);
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('pointerdown', onPointerDown);
       if (rafId) window.cancelAnimationFrame(rafId);
       if (snapTimer) window.clearTimeout(snapTimer);
       if (autoSnapClearTimer) window.clearTimeout(autoSnapClearTimer);
