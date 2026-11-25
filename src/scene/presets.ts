@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 export type SceneMode = 'ocean' | 'geometry' | 'ribbons' | 'custom';
 
-export type CustomFuncType = 'wave' | 'sphere' | 'torus' | 'lissajous' | 'helix';
+export type CustomFuncType = 'wave' | 'sphere' | 'galaxy' | 'ripple' | 'helix';
 export type CustomNoiseType = 'none' | 'fbm' | 'gyroid' | 'value3d' | 'curl';
 
 export interface CustomParams {
@@ -29,8 +29,8 @@ export const DEFAULT_CUSTOM_PARAMS: CustomParams = {
 export const CUSTOM_FUNC_INDEX: Record<CustomFuncType, number> = {
   wave: 0,
   sphere: 1,
-  torus: 2,
-  lissajous: 3,
+  galaxy: 2,
+  ripple: 3,
   helix: 4,
 };
 

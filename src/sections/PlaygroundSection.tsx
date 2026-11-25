@@ -28,8 +28,8 @@ const MODE_OPTIONS: { value: SceneMode; label: string }[] = [
 const FUNC_OPTIONS: { value: CustomFuncType; label: string }[] = [
   { value: 'wave', label: 'Wave' },
   { value: 'sphere', label: 'Sphere' },
-  { value: 'torus', label: 'Torus' },
-  { value: 'lissajous', label: 'Lissajous' },
+  { value: 'galaxy', label: 'Galaxy' },
+  { value: 'ripple', label: 'Ripple' },
   { value: 'helix', label: 'Helix' },
 ];
 

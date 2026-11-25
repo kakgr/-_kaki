@@ -9,7 +9,7 @@ uniform float uFromMode;   // 0.0 = Ocean, 1.0 = Geometry, 2.0 = Ribbons, 3.0 = 
 uniform float uTargetMode; // 0.0 = Ocean, 1.0 = Geometry, 2.0 = Ribbons, 3.0 = Custom
 
 // PlayGround Custom Uniforms (Uniform Branching)
-uniform int uCustomFunc;       // 0: Wave, 1: Sphere, 2: Torus, 3: Lissajous, 4: Helix
+uniform int uCustomFunc;       // 0: Wave, 1: Sphere, 2: Galaxy, 3: Ripple, 4: Helix
 uniform int uCustomNoise;      // 0: None, 1: FBM, 2: Gyroid, 3: Value3D, 4: Curl
 uniform float uCustomShape;
 uniform float uCustomNoiseAmp;
@@ -290,34 +290,40 @@ void main() {
             float rad = 5.0 * harmonic;
             customPos = vec3(cos(phi) * rSlice * rad, yNorm * rad, sin(phi) * rSlice * rad);
         } else if (uCustomFunc == 2) {
-            // Torus Knot
-            float u = ((i + 0.5) / uCount) * 6.2831853 + ct * 0.25;
-            float pK = 2.0;
-            float qK = max(1.0, floor(uCustomShape + 1.2));
-            float rKnot = 3.8 + 1.5 * cos(qK * u);
-            vec3 center = vec3(
-                rKnot * cos(pK * u),
-                1.9 * sin(qK * u),
-                rKnot * sin(pK * u)
-            );
-            float tubeAngle = hash11(i * 0.371 + 3.1) * 6.2831853;
-            float tubeRad = (0.35 + 0.75 * hash11(i * 0.713 + 9.7));
-            customPos = center + vec3(
-                cos(tubeAngle) * tubeRad,
-                sin(tubeAngle) * tubeRad,
-                sin(tubeAngle + u) * tubeRad * 0.7
+            // Galaxy — 広域スパイラルフィールド（奥行きと広がり）
+            float armCount = max(2.0, floor(uCustomShape + 1.0));
+            float armIndex = mod(i, armCount);
+            float rNorm = pow(hash11(i * 0.371 + 3.1), 0.72);
+            float rad = 1.2 + rNorm * 27.0;
+            float twist = uCustomShape * 0.24;
+            float baseAngle = (armIndex / armCount) * 6.2831853;
+            float scatter = (hash11(i * 0.713 + 9.7) - 0.5) * (0.45 + rNorm * 1.15);
+            float spin = ct * (0.45 / (0.35 + rNorm));
+            float theta = baseAngle + rad * twist + scatter - spin;
+
+            float thick = (hash11(i * 0.917 + 15.3) - 0.5) * mix(2.4, 0.5, rNorm);
+            float waveY = sin(rad * 0.45 - ct * 1.4) * 0.65;
+            customPos = vec3(
+                cos(theta) * rad * 1.15,
+                thick + waveY,
+                sin(theta) * rad - 8.0
             );
         } else if (uCustomFunc == 3) {
-            // 3D Lissajous Surface
-            float u = hash11(i * 0.217 + 1.7) * 6.2831853;
-            float v = hash11(i * 0.619 + 8.3) * 6.2831853;
-            float a = max(1.0, floor(uCustomShape + 0.5));
-            float b = a + 1.0;
-            customPos = vec3(
-                sin(a * u + ct * 0.6) * cos(v) * 5.6,
-                sin(b * v - ct * 0.45) * 4.2,
-                cos(a * u - v + ct * 0.35) * 5.6
-            );
+            // Ripple — 広域マルチ干渉波紋フィールド
+            float angle = i * 2.39996 + (hash11(i + 1.0) - 0.5) * 0.25;
+            float radius = sqrt((i + 0.5) / uCount) * 26.0;
+            vec3 base = vec3(cos(angle) * radius * 1.15, 0.0, sin(angle) * radius - 10.0);
+
+            float freq = 0.35 + uCustomShape * 0.22;
+            float d1 = length(base.xz - vec2(-8.0, -6.0));
+            float d2 = length(base.xz - vec2(8.5, -13.0));
+            float d3 = length(base.xz - vec2(0.0, -2.0));
+
+            float h = sin(d1 * freq - ct * 2.6) * 1.15
+                    + sin(d2 * freq * 1.15 - ct * 2.1) * 0.95
+                    + cos(d3 * freq * 0.85 - ct * 1.8) * 0.75;
+            float envelope = 1.0 / (1.0 + radius * 0.045);
+            customPos = vec3(base.x, h * envelope * 1.35, base.z);
         } else {
             // Helix / Mobius Ribbon
             float uP = hash11(i * 0.293 + 9.7);
@@ -358,11 +364,15 @@ void main() {
         }
 
         // 4-C. カラー（Wave 初期値時は Ocean と完全一致）
-        if (uCustomFunc == 0) {
+        if (uCustomFunc == 0 || uCustomFunc == 3) {
             float cHeight = clamp(customPos.y * 0.5 + 0.5, 0.0, 1.0);
             float cFoam = smoothstep(0.35, 1.15, customPos.y) * 0.75 + accentFactor;
             customColor = mix(vec3(0.05, 0.25, 0.55), vec3(0.12, 0.68, 0.92), smoothstep(0.15, 0.85, cHeight));
             customColor = mix(customColor, vec3(0.88, 0.96, 1.00), clamp(cFoam, 0.0, 1.0) * 0.85);
+        } else if (uCustomFunc == 2) {
+            float rGlow = clamp(1.0 - length(customPos.xz - vec2(0.0, -8.0)) / 24.0, 0.0, 1.0);
+            customColor = mix(vec3(0.06, 0.24, 0.64), vec3(0.18, 0.78, 0.96), rGlow);
+            customColor = mix(customColor, vec3(0.96, 0.84, 0.66), smoothstep(0.45, 0.95, rGlow + accentFactor * 0.4) * 0.75);
         } else {
             float cHeight = clamp(customPos.y * 0.14 + 0.5, 0.0, 1.0);
             customColor = mix(vec3(0.08, 0.30, 0.76), vec3(0.18, 0.84, 0.95), cHeight);
@@ -383,7 +393,8 @@ void main() {
         hash11(i * 0.89 + 3.0) - 0.5
     ) * 0.45;
 
-    float customMaxDist = (uCustomFunc == 0) ? 32.0 : 18.0;
+    bool customIsWide = (uCustomFunc == 0 || uCustomFunc == 2 || uCustomFunc == 3);
+    float customMaxDist = customIsWide ? 32.0 : 18.0;
     float maxSourceDist = selectFloat(uFromMode, 32.0, 18.0, 100.0, customMaxDist);
     float srcDistNorm = clamp(length(fromPos - corePos) / maxSourceDist, 0.18, 1.0);
     float gatherRaw = clamp(uProgress / (0.36 * srcDistNorm), 0.0, 1.0);
@@ -421,8 +432,8 @@ void main() {
     float oceanLod = smoothstep(lodRand, lodRand + 0.08, lodKeep);
     float oceanDistAlpha = 1.0 - smoothstep(8.0, 42.0, camDist) * 0.2;
 
-    float fromIsWave = (uFromMode < 0.5 || (uFromMode >= 2.5 && uCustomFunc == 0)) ? 1.0 : 0.0;
-    float toIsWave   = (uTargetMode < 0.5 || (uTargetMode >= 2.5 && uCustomFunc == 0)) ? 1.0 : 0.0;
+    float fromIsWave = (uFromMode < 0.5 || (uFromMode >= 2.5 && customIsWide)) ? 1.0 : 0.0;
+    float toIsWave   = (uTargetMode < 0.5 || (uTargetMode >= 2.5 && customIsWide)) ? 1.0 : 0.0;
     float isWave = mix(fromIsWave, toIsWave, smoothstep(0.25, 0.75, uProgress));
     float inTransition = sin(clamp(uProgress, 0.0, 1.0) * 3.14159265);
     float alpha = mix(1.0, oceanLod * oceanDistAlpha, isWave * (1.0 - inTransition)) * introVis;
@@ -447,8 +458,8 @@ void main() {
     // Ocean: (15, 18, 120), Geometry: (12, 22, 120), Ribbons: (22, 18, 130)
     // Custom: カメラ距離に追従しつつ前後がしっかりボケる固定 DoF
     float camOriginDist = length(cameraPosition);
-    float customFocusDist = (uCustomFunc == 0) ? max(6.0, camOriginDist + 1.5) : max(4.0, camOriginDist);
-    float customFocusRange = (uCustomFunc == 0) ? 11.0 : 6.0;
+    float customFocusDist = customIsWide ? max(6.0, camOriginDist + 1.5) : max(4.0, camOriginDist);
+    float customFocusRange = customIsWide ? 11.0 : 6.0;
 
     float fromFocusDist  = selectFloat(uFromMode, 15.0, 12.0, 22.0, customFocusDist);
     float toFocusDist    = selectFloat(uTargetMode, 15.0, 12.0, 22.0, customFocusDist);
