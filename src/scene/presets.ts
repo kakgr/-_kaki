@@ -1,6 +1,46 @@
 import * as THREE from 'three';
 
-export type SceneMode = 'ocean' | 'geometry' | 'ribbons';
+export type SceneMode = 'ocean' | 'geometry' | 'ribbons' | 'custom';
+
+export type CustomFuncType = 'wave' | 'sphere' | 'torus' | 'lissajous' | 'helix';
+export type CustomNoiseType = 'none' | 'fbm' | 'gyroid' | 'value3d' | 'curl';
+
+export interface CustomParams {
+  funcType: CustomFuncType;
+  noiseType: CustomNoiseType;
+  speed: number;
+  shape: number;
+  noiseAmp: number;
+  noiseFreq: number;
+  pointSize: number;
+}
+
+/** 波 (Ocean) と同じ初期値で始まるカスタム設定 */
+export const DEFAULT_CUSTOM_PARAMS: CustomParams = {
+  funcType: 'wave',
+  noiseType: 'fbm',
+  speed: 0.3,
+  shape: 2.2,
+  noiseAmp: 1.4,
+  noiseFreq: 0.45,
+  pointSize: 120,
+};
+
+export const CUSTOM_FUNC_INDEX: Record<CustomFuncType, number> = {
+  wave: 0,
+  sphere: 1,
+  torus: 2,
+  lissajous: 3,
+  helix: 4,
+};
+
+export const CUSTOM_NOISE_INDEX: Record<CustomNoiseType, number> = {
+  none: 0,
+  fbm: 1,
+  gyroid: 2,
+  value3d: 3,
+  curl: 4,
+};
 
 export const CAMERA_PRESETS = {
   ocean: {
@@ -13,6 +53,10 @@ export const CAMERA_PRESETS = {
   },
   ribbons: {
     position: new THREE.Vector3(-9.22392366377476, 5.680536148497803, 18.460952778386748),
+    target: new THREE.Vector3(0, 0, 0),
+  },
+  custom: {
+    position: new THREE.Vector3(0, 5.5, 11),
     target: new THREE.Vector3(0, 0, 0),
   },
 } as const;

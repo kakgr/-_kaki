@@ -6,6 +6,8 @@ import { CAMERA_PRESETS } from './presets';
 import type { SceneMode } from './presets';
 
 const TRANSITION_DURATION = 2.6;
+const MIN_ZOOM_DIST = 4.5;
+const MAX_ZOOM_DIST = 44.0;
 
 function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -15,15 +17,23 @@ interface SceneCameraProps {
   mode: SceneMode;
   interactive: boolean;
   resetSignal: number;
+  zoomCommand: { id: number; delta: number };
 }
 
-export function SceneCamera({ mode, interactive, resetSignal }: SceneCameraProps) {
+export function SceneCamera({
+  mode,
+  interactive,
+  resetSignal,
+  zoomCommand,
+}: SceneCameraProps) {
   const { camera, gl } = useThree();
 
   const controlsRef = useRef<ThreeOrbitControls | null>(null);
   const currentBasePos = useRef(CAMERA_PRESETS[mode].position.clone());
   const currentTarget = useRef(CAMERA_PRESETS[mode].target.clone());
   const pointer = useRef({ x: 0, y: 0, smoothX: 0, smoothY: 0 });
+  const zoomVelocityRef = useRef(0);
+  const offsetVecRef = useRef(new THREE.Vector3());
   const isFirstMountRef = useRef(true);
   const interactiveRef = useRef(interactive);
 
@@ -45,14 +55,14 @@ export function SceneCamera({ mode, interactive, resetSignal }: SceneCameraProps
 
   useEffect(() => {
     const controls = new ThreeOrbitControls(camera, gl.domElement);
-    // OrbitControls disables browser gestures by default, including vertical scrolling.
-    controls.domElement?.style.setProperty('touch-action', 'pan-y pinch-zoom');
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    // Keep mouse wheel free for vertical page scrolling
+    // Normal wheel stays free for vertical page scrolling; zoom uses pinch/Ctrl+wheel & +/- buttons
     controls.enableZoom = false;
     controls.enableRotate = true;
     controls.enablePan = true;
+    controls.minDistance = MIN_ZOOM_DIST;
+    controls.maxDistance = MAX_ZOOM_DIST;
     controls.enabled = interactiveRef.current;
     controls.target.copy(currentTarget.current);
     controls.update();
@@ -63,7 +73,19 @@ export function SceneCamera({ mode, interactive, resetSignal }: SceneCameraProps
     controls.addEventListener('start', onControlStart);
     controlsRef.current = controls;
 
+    // Support trackpad pinch-to-zoom (ctrlKey) & Ctrl/Cmd/Alt + Wheel zoom without blocking page scroll
+    const onCanvasWheel = (e: WheelEvent) => {
+      if (!interactiveRef.current) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        e.preventDefault();
+        transitionRef.current.active = false;
+        zoomVelocityRef.current += e.deltaY * 0.018;
+      }
+    };
+    gl.domElement.addEventListener('wheel', onCanvasWheel, { passive: false });
+
     return () => {
+      gl.domElement.removeEventListener('wheel', onCanvasWheel);
       controls.removeEventListener('start', onControlStart);
       controls.dispose();
       controlsRef.current = null;
@@ -76,6 +98,13 @@ export function SceneCamera({ mode, interactive, resetSignal }: SceneCameraProps
       controlsRef.current.enabled = interactive;
     }
   }, [interactive]);
+
+  // Handle +/- button zoom commands from PlayGround UI
+  useEffect(() => {
+    if (zoomCommand.id === 0 || !interactiveRef.current) return;
+    transitionRef.current.active = false;
+    zoomVelocityRef.current += zoomCommand.delta;
+  }, [zoomCommand]);
 
   useEffect(() => {
     const onPointerMove = (e: PointerEvent) => {
@@ -105,6 +134,7 @@ export function SceneCamera({ mode, interactive, resetSignal }: SceneCameraProps
       return;
     }
 
+    zoomVelocityRef.current = 0;
     transitionRef.current = {
       active: true,
       elapsed: 0,
@@ -143,6 +173,21 @@ export function SceneCamera({ mode, interactive, resetSignal }: SceneCameraProps
     }
 
     if (interactive && controls) {
+      if (Math.abs(zoomVelocityRef.current) > 0.001) {
+        const step = zoomVelocityRef.current * Math.min(1, dt * 12);
+        zoomVelocityRef.current -= step;
+
+        const offset = offsetVecRef.current.subVectors(camera.position, controls.target);
+        const currentDist = offset.length();
+        const nextDist = THREE.MathUtils.clamp(
+          currentDist * (1 + step * 0.14),
+          MIN_ZOOM_DIST,
+          MAX_ZOOM_DIST
+        );
+        offset.setLength(nextDist);
+        camera.position.copy(controls.target).add(offset);
+      }
+
       controls.update();
       currentBasePos.current.copy(camera.position);
       currentTarget.current.copy(controls.target);

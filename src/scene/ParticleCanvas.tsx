@@ -1,21 +1,26 @@
 import { useEffect, useState } from 'react';
+import type { RefObject } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { MorphParticleField } from './MorphParticleField';
 import { SceneCamera } from './SceneCamera';
 import { CAMERA_PRESETS } from './presets';
-import type { SceneMode } from './presets';
+import type { CustomParams, SceneMode } from './presets';
 
 interface ParticleCanvasProps {
   mode: SceneMode;
+  customParamsRef: RefObject<CustomParams>;
   interactive: boolean;
   resetSignal: number;
+  zoomCommand: { id: number; delta: number };
   onIntroReady?: () => void;
 }
 
 export function ParticleCanvas({
   mode,
+  customParamsRef,
   interactive,
   resetSignal,
+  zoomCommand,
   onIntroReady,
 }: ParticleCanvasProps) {
   const [isVisible, setIsVisible] = useState(
@@ -38,7 +43,6 @@ export function ParticleCanvas({
       aria-hidden={!interactive}
     >
       <Canvas
-        style={{ pointerEvents: 'inherit' }}
         dpr={1}
         frameloop={isVisible ? 'always' : 'never'}
         gl={{ antialias: false, powerPreference: 'high-performance' }}
@@ -47,8 +51,17 @@ export function ParticleCanvas({
           fov: 50,
         }}
       >
-        <MorphParticleField mode={mode} onIntroReady={onIntroReady} />
-        <SceneCamera mode={mode} interactive={interactive} resetSignal={resetSignal} />
+        <MorphParticleField
+          mode={mode}
+          customParamsRef={customParamsRef}
+          onIntroReady={onIntroReady}
+        />
+        <SceneCamera
+          mode={mode}
+          interactive={interactive}
+          resetSignal={resetSignal}
+          zoomCommand={zoomCommand}
+        />
       </Canvas>
     </div>
   );

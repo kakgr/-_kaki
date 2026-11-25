@@ -27,7 +27,7 @@ export const FRAMES: FrameMeta[] = [
   { id: 'work-02', index: '04', label: 'WORK 02', mode: 'ribbons', dimMax: 0.44 },
   { id: 'work-03', index: '05', label: 'WORK 03', mode: 'ribbons', dimMax: 0.44 },
   { id: 'contact', index: '06', label: 'CONTACT', mode: 'ocean', dimMax: 0.42 },
-  { id: 'playground', index: '07', label: 'PLAYGROUND', mode: 'ocean', dimMax: 0 },
+  { id: 'playground', index: '07', label: 'PLAYGROUND', mode: 'custom', dimMax: 0 },
 ];
 
 /**

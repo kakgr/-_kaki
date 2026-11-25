@@ -635,6 +635,124 @@ body {
   gap: 18px;
 }
 
+/* Custom Function & Noise Control Strip (Swiss Hairline Style) */
+.swiss-custom-dock {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px 0 4px;
+  border-top: 1px solid var(--rule-subtle);
+}
+
+.swiss-custom-selectors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 36px;
+}
+
+.swiss-selector-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.swiss-selector-group__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--ink-muted);
+}
+
+.swiss-selector-group__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swiss-chip {
+  background: none;
+  border: 1px solid var(--rule-subtle);
+  padding: 5px 11px;
+  color: var(--ink-secondary);
+  font-family: var(--font-swiss);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.swiss-chip:hover {
+  color: var(--ink-primary);
+  border-color: var(--rule-strong);
+}
+
+.swiss-chip.is-active {
+  color: var(--bg-deep);
+  background: var(--swiss-accent);
+  border-color: var(--swiss-accent);
+  font-weight: 600;
+  text-shadow: none;
+}
+
+.swiss-custom-default-btn {
+  margin-left: auto;
+}
+
+.swiss-custom-sliders {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px 24px;
+}
+
+.swiss-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.swiss-slider__head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--ink-secondary);
+}
+
+.swiss-slider input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  background: var(--rule-strong);
+  outline: none;
+  cursor: pointer;
+}
+
+.swiss-slider input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  background: var(--swiss-accent);
+  border: none;
+  cursor: pointer;
+}
+
+.swiss-slider input[type='range']::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  background: var(--swiss-accent);
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+}
+
 .swiss-playground__bar {
   display: flex;
   align-items: center;
@@ -705,6 +823,38 @@ body {
   font-weight: 500;
   letter-spacing: 0.14em;
   color: var(--ink-muted);
+}
+
+.swiss-zoom-group {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--rule-subtle);
+}
+
+.swiss-zoom-btn {
+  width: 28px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: none;
+  color: var(--ink-primary);
+  font-family: var(--font-swiss);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.swiss-zoom-btn + .swiss-zoom-btn {
+  border-left: 1px solid var(--rule-subtle);
+}
+
+.swiss-zoom-btn:hover {
+  color: var(--swiss-accent);
+  background: rgba(242, 237, 228, 0.06);
 }
 
 .swiss-reset-btn {
@@ -922,6 +1072,10 @@ body {
    Responsive Breakpoints
    ========================================================= */
 @media (max-width: 1024px) {
+  .swiss-custom-sliders {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .swiss-frame {
     height: auto;
     min-height: 100svh;

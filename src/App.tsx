@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ParticleCanvas } from './scene/ParticleCanvas';
-import type { SceneMode } from './scene/presets';
+import { DEFAULT_CUSTOM_PARAMS } from './scene/presets';
+import type { CustomParams, SceneMode } from './scene/presets';
 import { FRAMES } from './data/portfolio';
 import type { FrameId } from './data/portfolio';
 import { SwissChrome } from './components/SwissChrome';
@@ -14,11 +15,13 @@ const FRAME_MAP = new Map(FRAMES.map((f) => [f.id, f]));
 
 export default function App() {
   const [activeFrame, setActiveFrame] = useState<FrameId>('hero');
-  const [playgroundMode, setPlaygroundMode] = useState<SceneMode>('ocean');
+  const [playgroundMode, setPlaygroundMode] = useState<SceneMode>('custom');
+  const [customParams, setCustomParams] = useState<CustomParams>(DEFAULT_CUSTOM_PARAMS);
+  const customParamsRef = useRef<CustomParams>(DEFAULT_CUSTOM_PARAMS);
   const [cameraResetSignal, setCameraResetSignal] = useState(0);
+  const [zoomCommand, setZoomCommand] = useState({ id: 0, delta: 0 });
   const [introReady, setIntroReady] = useState(false);
   const dimmerRef = useRef<HTMLDivElement>(null);
-  const touchInputRef = useRef(false);
 
   const currentMeta = FRAME_MAP.get(activeFrame) ?? FRAMES[0];
   const isPlayground = activeFrame === 'playground';
@@ -35,8 +38,25 @@ export default function App() {
     }
   }, []);
 
+  const handleCustomChange = useCallback((patch: Partial<CustomParams>) => {
+    setCustomParams((prev) => {
+      const next = { ...prev, ...patch };
+      customParamsRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const handleResetCustom = useCallback(() => {
+    customParamsRef.current = DEFAULT_CUSTOM_PARAMS;
+    setCustomParams(DEFAULT_CUSTOM_PARAMS);
+  }, []);
+
   const handleResetCamera = useCallback(() => {
     setCameraResetSignal((n) => n + 1);
+  }, []);
+
+  const handleZoom = useCallback((delta: number) => {
+    setZoomCommand((prev) => ({ id: prev.id + 1, delta }));
   }, []);
 
   useEffect(() => {
@@ -91,16 +111,6 @@ export default function App() {
       isAutoSnapping = false;
     };
 
-    const onPointerDown = (event: PointerEvent) => {
-      touchInputRef.current = event.pointerType === 'touch';
-      cancelSnap();
-    };
-
-    const onWheel = () => {
-      touchInputRef.current = false;
-      cancelSnap();
-    };
-
     const scheduleMagneticPull = () => {
       if (snapTimer) window.clearTimeout(snapTimer);
       if (isAutoSnapping) return;
@@ -126,7 +136,7 @@ export default function App() {
       if (!rafId) {
         rafId = window.requestAnimationFrame(updateFrameAndDimmer);
       }
-      if (!touchInputRef.current && !isAutoSnapping) {
+      if (!isAutoSnapping) {
         scheduleMagneticPull();
       }
     };
@@ -134,14 +144,16 @@ export default function App() {
     updateFrameAndDimmer();
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll, { passive: true });
-    window.addEventListener('wheel', onWheel, { passive: true });
-    window.addEventListener('pointerdown', onPointerDown, { passive: true });
+    window.addEventListener('wheel', cancelSnap, { passive: true });
+    window.addEventListener('touchstart', cancelSnap, { passive: true });
+    window.addEventListener('pointerdown', cancelSnap, { passive: true });
 
     return () => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
-      window.removeEventListener('wheel', onWheel);
-      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('wheel', cancelSnap);
+      window.removeEventListener('touchstart', cancelSnap);
+      window.removeEventListener('pointerdown', cancelSnap);
       if (rafId) window.cancelAnimationFrame(rafId);
       if (snapTimer) window.clearTimeout(snapTimer);
       if (autoSnapClearTimer) window.clearTimeout(autoSnapClearTimer);
@@ -152,8 +164,10 @@ export default function App() {
     <>
       <ParticleCanvas
         mode={mode}
+        customParamsRef={customParamsRef}
         interactive={isPlayground}
         resetSignal={cameraResetSignal}
+        zoomCommand={zoomCommand}
         onIntroReady={handleIntroReady}
       />
 
@@ -172,8 +186,12 @@ export default function App() {
         <ContactSection onNavigate={handleNavigate} />
         <PlaygroundSection
           mode={playgroundMode}
+          customParams={customParams}
           onModeChange={setPlaygroundMode}
+          onCustomChange={handleCustomChange}
+          onResetCustom={handleResetCustom}
           onResetCamera={handleResetCamera}
+          onZoom={handleZoom}
           onNavigate={handleNavigate}
         />
       </main>
